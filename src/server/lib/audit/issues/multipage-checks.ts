@@ -1,11 +1,84 @@
 /**
- * Pure cross-page checks (no database access): duplicate grouping and
- * redirect chain/loop detection. The D1-backed checks (broken links,
- * orphans) live in multipage.ts.
+ * Pure cross-page checks (no database access): duplicate grouping,
+ * redirect chain/loop detection, and broken-internal-link aggregation.
+ * The D1 queries that feed these live in multipage.ts.
  */
 import type { DetectedIssue } from "@/server/lib/audit/issues/page-reporters";
 
 const DUPLICATE_GROUP_SAMPLE = 3;
+// Cap the source pages we store per broken target so a link in a site-wide
+// template (footer/nav) can't bloat one issue row. sourceCount keeps the true
+// total; the UI/CSV note "…and N more".
+const BROKEN_LINK_SOURCE_SAMPLE = 50;
+
+/** One crawled edge whose target returned a 4xx/5xx. */
+export interface BrokenLinkEdge {
+  sourcePageId: string;
+  sourceUrl: string;
+  targetUrl: string;
+  targetStatus: number | null;
+  anchor: string | null;
+}
+
+/** One place a broken target is linked from: the page and its anchor text. */
+interface BrokenLinkSource {
+  url: string;
+  anchor: string | null;
+}
+
+/**
+ * Aggregate broken-link edges into ONE issue per broken target, carrying every
+ * source page (with its anchor text) that links to it. Fixing a broken link
+ * means editing the pages that point at it, so the report has to name them all
+ * — not just a single deduplicated hit.
+ *
+ * The representative pageUrl (the alphabetically-first source) is stable for a
+ * given edge set, so the deterministic issue row id stays stable across step
+ * retries.
+ */
+export function buildBrokenLinkIssues(
+  edges: BrokenLinkEdge[],
+): DetectedIssue[] {
+  const byTarget = new Map<string, BrokenLinkEdge[]>();
+  for (const edge of edges) {
+    const group = byTarget.get(edge.targetUrl);
+    if (group) group.push(edge);
+    else byTarget.set(edge.targetUrl, [edge]);
+  }
+
+  const issues: DetectedIssue[] = [];
+  for (const [targetUrl, group] of byTarget) {
+    const sorted = group.toSorted((a, b) =>
+      a.sourceUrl < b.sourceUrl ? -1 : a.sourceUrl > b.sourceUrl ? 1 : 0,
+    );
+
+    // Defensively dedupe identical (source url, anchor) pairs.
+    const seen = new Set<string>();
+    const sources: BrokenLinkSource[] = [];
+    for (const edge of sorted) {
+      const key = `${edge.sourceUrl}\n${edge.anchor ?? ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      sources.push({ url: edge.sourceUrl, anchor: edge.anchor });
+    }
+
+    const representative = sorted[0];
+    issues.push({
+      issueType: "broken-internal-link",
+      pageId: representative.sourcePageId,
+      pageUrl: representative.sourceUrl,
+      dedupeKey: targetUrl,
+      details: {
+        targetUrl,
+        targetStatus: group[0].targetStatus,
+        sources: sources.slice(0, BROKEN_LINK_SOURCE_SAMPLE),
+        sourceCount: sources.length,
+      },
+    });
+  }
+
+  return issues;
+}
 
 export interface SlimPage {
   id: string;

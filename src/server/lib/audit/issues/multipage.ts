@@ -11,6 +11,7 @@ import { db } from "@/db";
 import { auditLinks, auditPages } from "@/db/schema";
 import { normalizeUrl } from "@/server/lib/audit/url-utils";
 import {
+  buildBrokenLinkIssues,
   findDuplicates,
   findRedirectChainsAndLoops,
   type SlimPage,
@@ -70,6 +71,7 @@ async function findBrokenInternalLinks(
       sourcePageId: auditLinks.sourcePageId,
       sourceUrl: auditLinks.sourceUrl,
       targetUrl: auditLinks.targetUrl,
+      anchor: auditLinks.anchor,
       targetStatus: auditPages.statusCode,
     })
     .from(auditLinks)
@@ -90,13 +92,9 @@ async function findBrokenInternalLinks(
     )
     .limit(BROKEN_LINK_ISSUE_CAP);
 
-  return rows.map((row) => ({
-    issueType: "broken-internal-link" as const,
-    pageId: row.sourcePageId,
-    pageUrl: row.sourceUrl,
-    dedupeKey: row.targetUrl,
-    details: { targetUrl: row.targetUrl, targetStatus: row.targetStatus },
-  }));
+  // Aggregate edges into one issue per broken target, keeping every source
+  // page + anchor so the fix location is explicit (see buildBrokenLinkIssues).
+  return buildBrokenLinkIssues(rows);
 }
 
 async function findOrphanPages(

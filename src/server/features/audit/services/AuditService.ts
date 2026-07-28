@@ -210,6 +210,16 @@ async function getHistory(projectId: string) {
       ranLighthouse,
       startedAt: audit.startedAt,
       completedAt: audit.completedAt,
+      // Launch settings, so the UI can replay them into the start form.
+      // Null for audits whose config predates the typed schema or is corrupt.
+      settings: parsedConfig
+        ? {
+            maxPages: parsedConfig.maxPages,
+            lighthouseStrategy: parsedConfig.lighthouseStrategy,
+            excludePatterns: parsedConfig.excludePatterns,
+            renderMode: parsedConfig.renderMode,
+          }
+        : null,
     };
   });
 }

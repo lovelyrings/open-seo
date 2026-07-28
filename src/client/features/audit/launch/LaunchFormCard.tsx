@@ -255,10 +255,11 @@ function ExcludePatternsOptions({ launchForm }: Pick<Props, "launchForm">) {
         }}
       </launchForm.Field>
       <p className="text-xs text-base-content/50">
-        One regular expression per line; any crawled or sitemap URL matching a
-        pattern is skipped (e.g. <code>/configurator</code> or{" "}
-        <code>/cdn-cgi/</code>). Useful for skipping crawl traps. Up to 25
-        patterns.
+        One regular expression (regex) per line; any crawled or sitemap URL
+        matching a pattern is skipped. Patterns match anywhere in the URL unless
+        you anchor them, e.g. <code>/configurator</code> or{" "}
+        <code>^https://.*/cdn-cgi/</code>. Useful for skipping crawl traps. Up
+        to 25 patterns.
       </p>
     </div>
   );

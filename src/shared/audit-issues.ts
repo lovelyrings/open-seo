@@ -38,7 +38,7 @@ export const AUDIT_ISSUE_TYPES = {
     explanation:
       "This page links to an internal URL that returns an error status (4xx/5xx). Broken links waste crawl budget, leak link equity, and frustrate users — they are among the most common and most damaging technical SEO issues.",
     howToFix:
-      "Update the link to point at the correct live URL, or remove it. If the target was moved, prefer linking directly to the new URL rather than relying on a redirect.",
+      "Fix or remove the broken link on each source page listed below. The linking pages and their anchor text are in the issue details. Update the link to point at the correct live URL, or remove it. If the target was moved, prefer linking directly to the new URL rather than relying on a redirect.",
   },
   "missing-title": {
     severity: "critical",

@@ -65,7 +65,7 @@ const runInputSchema = {
       "Run Lighthouse on a sample of up to 10 representative pages (default true).",
     ),
   excludePatterns: excludePatternsSchema.describe(
-    `Regex patterns; any crawled or sitemap URL matching one is excluded from the audit (both seeding and link-following), without touching robots.txt or the sitemap. Use to skip crawl traps (e.g. configurator variants) and artifacts (e.g. /cdn-cgi/). At most ${MAX_EXCLUDE_PATTERNS} patterns, each up to ${MAX_EXCLUDE_PATTERN_LENGTH} characters; each must be a valid regular expression.`,
+    `Regular expressions (regex), one pattern per entry; any crawled or sitemap URL matching one is excluded from the audit (both seeding and link-following), without touching robots.txt or the sitemap. Patterns match anywhere in the URL unless anchored, e.g. "/configurator" or "^https://.*/cdn-cgi/". Use to skip crawl traps (e.g. configurator variants) and artifacts (e.g. /cdn-cgi/). At most ${MAX_EXCLUDE_PATTERNS} patterns, each up to ${MAX_EXCLUDE_PATTERN_LENGTH} characters; each must be a valid regular expression.`,
   ),
   renderMode: z
     .boolean()

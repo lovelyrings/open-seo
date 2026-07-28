@@ -65,6 +65,7 @@ function LaunchContent({
           history={controller.historyQuery.data ?? []}
           isLoading={controller.historyQuery.isLoading}
           onDelete={controller.deleteAudit}
+          onLoadSettings={controller.loadSettings}
         />
       </div>
     </div>

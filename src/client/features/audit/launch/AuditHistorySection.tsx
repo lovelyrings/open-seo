@@ -1,18 +1,28 @@
 import { Link } from "@tanstack/react-router";
-import { MoreHorizontal, ScanSearch, Trash2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  ScanSearch,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
 import type { getAuditHistory } from "@/serverFunctions/audit";
+import type { AuditLaunchSettings } from "@/client/features/audit/launch/types";
 import { formatDate, StatusBadge } from "@/client/features/audit/shared";
+
+type AuditHistoryEntry = Awaited<ReturnType<typeof getAuditHistory>>[number];
 
 export function AuditHistorySection({
   projectId,
   history,
   isLoading,
   onDelete,
+  onLoadSettings,
 }: {
   projectId: string;
   history: Awaited<ReturnType<typeof getAuditHistory>>;
   isLoading: boolean;
   onDelete: (auditId: string) => void;
+  onLoadSettings: (settings: AuditLaunchSettings) => void;
 }) {
   if (history.length === 0 && !isLoading) {
     return (
@@ -62,8 +72,9 @@ export function AuditHistorySection({
                   <td>
                     <HistoryActions
                       projectId={projectId}
-                      auditId={audit.id}
+                      audit={audit}
                       onDelete={onDelete}
+                      onLoadSettings={onLoadSettings}
                     />
                   </td>
                 </tr>
@@ -78,19 +89,23 @@ export function AuditHistorySection({
 
 function HistoryActions({
   projectId,
-  auditId,
+  audit,
   onDelete,
+  onLoadSettings,
 }: {
   projectId: string;
-  auditId: string;
+  audit: AuditHistoryEntry;
   onDelete: (auditId: string) => void;
+  onLoadSettings: (settings: AuditLaunchSettings) => void;
 }) {
+  const settings = audit.settings;
+
   return (
     <div className="flex items-center justify-end gap-2 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
       <Link
         to="/p/$projectId/audit"
         params={{ projectId }}
-        search={{ auditId, tab: "pages" }}
+        search={{ auditId: audit.id, tab: "pages" }}
         className="btn btn-primary btn-xs"
       >
         View
@@ -106,14 +121,31 @@ function HistoryActions({
         </div>
         <ul
           tabIndex={0}
-          className="dropdown-content z-10 menu p-2 shadow-lg bg-base-100 border border-base-300 rounded-box w-40"
+          className="dropdown-content z-10 menu p-2 shadow-lg bg-base-100 border border-base-300 rounded-box w-44"
         >
+          <li>
+            <button
+              disabled={!settings}
+              title={
+                settings
+                  ? "Load this audit's settings into the start form"
+                  : "This audit predates saved settings"
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                if (settings) onLoadSettings(settings);
+              }}
+            >
+              <SlidersHorizontal className="size-3.5" />
+              Load settings
+            </button>
+          </li>
           <li>
             <button
               className="text-error"
               onClick={(event) => {
                 event.stopPropagation();
-                onDelete(auditId);
+                onDelete(audit.id);
               }}
             >
               <Trash2 className="size-3.5" />

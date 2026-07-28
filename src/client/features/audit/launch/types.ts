@@ -19,6 +19,40 @@ export type LaunchFormValues = {
   excludePatternsInput: string;
 };
 
+/**
+ * The stored launch settings of a past audit, as surfaced by getAuditHistory.
+ * Mirrors the replayable fields of the server-side AuditConfig.
+ */
+export type AuditLaunchSettings = {
+  maxPages: number;
+  lighthouseStrategy: "auto" | "none";
+  excludePatterns: string[];
+  renderMode: boolean;
+};
+
+/**
+ * Map a past audit's stored settings onto the start form's editable fields
+ * (everything except the URL, which the user chooses per run). maxPages is
+ * clamped into the current plan's range so a settings replay never exceeds the
+ * limit the form otherwise enforces.
+ */
+export function auditSettingsToFormValues(
+  settings: AuditLaunchSettings,
+  maxPagesLimit: number,
+): Omit<LaunchFormValues, "url"> {
+  const clampedMaxPages = Math.max(
+    MIN_PAGES,
+    Math.min(maxPagesLimit, Math.round(settings.maxPages)),
+  );
+
+  return {
+    maxPagesInput: String(clampedMaxPages),
+    runLighthouse: settings.lighthouseStrategy !== "none",
+    renderJavaScript: settings.renderMode,
+    excludePatternsInput: settings.excludePatterns.join("\n"),
+  };
+}
+
 export const DEFAULT_LAUNCH_FORM_VALUES: LaunchFormValues = {
   url: "",
   maxPagesInput: String(DEFAULT_AUDIT_PAGES),

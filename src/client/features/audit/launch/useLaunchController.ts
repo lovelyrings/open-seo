@@ -7,6 +7,8 @@ import {
   startAudit,
 } from "@/serverFunctions/audit";
 import {
+  auditSettingsToFormValues,
+  type AuditLaunchSettings,
   DEFAULT_LAUNCH_FORM_VALUES,
   getMaxPagesLimit,
   MIN_PAGES,
@@ -127,12 +129,26 @@ export function useLaunchController({
     },
   });
 
+  const loadSettings = (settings: AuditLaunchSettings) => {
+    const values = auditSettingsToFormValues(settings, maxPagesLimit);
+    launchForm.setFieldValue("maxPagesInput", values.maxPagesInput);
+    launchForm.setFieldValue("runLighthouse", values.runLighthouse);
+    launchForm.setFieldValue("renderJavaScript", values.renderJavaScript);
+    launchForm.setFieldValue(
+      "excludePatternsInput",
+      values.excludePatternsInput,
+    );
+    launchForm.setErrorMap({ onSubmit: undefined });
+    toast.success("Settings loaded from previous audit");
+  };
+
   return {
     launchForm,
     historyQuery,
     maxPagesLimit,
     commitMaxPagesInput: () => commitMaxPagesInput(launchForm, maxPagesLimit),
     deleteAudit: (auditId: string) => deleteMutation.mutate(auditId),
+    loadSettings,
   };
 }
 

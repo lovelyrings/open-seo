@@ -243,6 +243,31 @@ function parseDetails(detailsJson: string): Array<[string, unknown]> | null {
   }
 }
 
+interface BrokenLinkSource {
+  url: string;
+  anchor: string | null;
+}
+
+const MAX_RENDERED_SOURCES = 25;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseSources(value: unknown): BrokenLinkSource[] | null {
+  if (!Array.isArray(value)) return null;
+  const entries: unknown[] = value;
+  const sources: BrokenLinkSource[] = [];
+  for (const entry of entries) {
+    if (!isRecord(entry)) continue;
+    const url = entry.url;
+    if (typeof url !== "string") continue;
+    const anchor = entry.anchor;
+    sources.push({ url, anchor: typeof anchor === "string" ? anchor : null });
+  }
+  return sources.length > 0 ? sources : null;
+}
+
 function IssueDetails({ detailsJson }: { detailsJson: string | null }) {
   const details = useMemo(
     () => (detailsJson ? parseDetails(detailsJson) : null),
@@ -256,16 +281,81 @@ function IssueDetails({ detailsJson }: { detailsJson: string | null }) {
   );
   if (entries.length === 0) return null;
 
+  // broken-internal-link carries a `sources` array (the pages that link to the
+  // broken target, with anchor text). Render it as a list so the user can see
+  // exactly where to fix the link; show the rest inline as before.
+  const sourcesEntry = entries.find(([key]) => key === "sources");
+  const sources = sourcesEntry ? parseSources(sourcesEntry[1]) : null;
+  const scalarEntries = entries.filter(([key]) => key !== "sources");
+  const sourceCount = (() => {
+    const raw = entries.find(([key]) => key === "sourceCount")?.[1];
+    return typeof raw === "number" ? raw : (sources?.length ?? 0);
+  })();
+
   return (
-    <span className="text-xs text-base-content/50 truncate">
-      {entries
-        .map(([key, value]) => {
-          const rendered = Array.isArray(value)
-            ? value.join(" → ")
-            : String(value);
-          return `${key}: ${rendered}`;
-        })
-        .join(" · ")}
-    </span>
+    <>
+      {scalarEntries.length > 0 && (
+        <span className="text-xs text-base-content/50 truncate">
+          {scalarEntries
+            .map(([key, value]) => {
+              const rendered = Array.isArray(value)
+                ? value.join(" → ")
+                : String(value);
+              return `${key}: ${rendered}`;
+            })
+            .join(" · ")}
+        </span>
+      )}
+      {sources && (
+        <BrokenLinkSourceList sources={sources} sourceCount={sourceCount} />
+      )}
+    </>
+  );
+}
+
+function BrokenLinkSourceList({
+  sources,
+  sourceCount,
+}: {
+  sources: BrokenLinkSource[];
+  sourceCount: number;
+}) {
+  const rendered = sources.slice(0, MAX_RENDERED_SOURCES);
+  const remaining = sourceCount - rendered.length;
+
+  return (
+    <div className="mt-1 space-y-1">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-base-content/50">
+        Linked from {sourceCount} {sourceCount === 1 ? "page" : "pages"}
+      </span>
+      <ul className="space-y-0.5">
+        {rendered.map((source) => (
+          <li
+            key={`${source.url}\n${source.anchor ?? ""}`}
+            className="text-xs text-base-content/60 flex flex-wrap items-baseline gap-x-1.5"
+          >
+            <a
+              className="link link-hover truncate max-w-full"
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              title={source.url}
+            >
+              {source.url}
+            </a>
+            {source.anchor ? (
+              <span className="text-base-content/40 italic truncate">
+                “{source.anchor}”
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {remaining > 0 ? (
+        <span className="text-[11px] text-base-content/40">
+          …and {remaining} more. Export the issues CSV for the full list.
+        </span>
+      ) : null}
+    </div>
   );
 }
