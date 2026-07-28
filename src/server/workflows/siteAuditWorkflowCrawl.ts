@@ -17,17 +17,20 @@ const CRAWL_CONCURRENCY = 25;
 const MAX_FRONTIER_LINKS_PER_BATCH = 2_000;
 const MAX_SUMMARY_TITLE_CHARS = 300;
 
-function shouldQueueCrawlLink(
-  link: string,
-  origin: string,
-  robots: RobotsResult,
-  visited: Set<string>,
-  queued: Set<string>,
-): boolean {
+function shouldQueueCrawlLink(params: {
+  link: string;
+  origin: string;
+  robots: RobotsResult;
+  isExcluded: (url: string) => boolean;
+  visited: Set<string>;
+  queued: Set<string>;
+}): boolean {
+  const { link, origin, robots, isExcluded, visited, queued } = params;
   return (
     isSameOrigin(link, origin) &&
     isCrawlableUrl(link) &&
     robots.isAllowed(link) &&
+    !isExcluded(link) &&
     !visited.has(link) &&
     !queued.has(link)
   );
@@ -46,6 +49,8 @@ type CrawlPhaseParams = {
   startUrl: string;
   maxPages: number;
   robots: RobotsResult;
+  /** Keeps matching URLs out of the frontier; the start URL stays exempt. */
+  isExcluded: (url: string) => boolean;
   sitemapUrls: string[];
 };
 
@@ -69,6 +74,7 @@ export async function runCrawlPhase(
     startUrl,
     maxPages,
     robots,
+    isExcluded,
     sitemapUrls,
   } = params;
   const visited = new Set<string>();
@@ -94,7 +100,16 @@ export async function runCrawlPhase(
     const normalized = normalizeUrl(sitemapUrl);
     if (!normalized) continue;
     sitemapSet.add(normalized);
-    if (!shouldQueueCrawlLink(normalized, origin, robots, visited, queued)) {
+    if (
+      !shouldQueueCrawlLink({
+        link: normalized,
+        origin,
+        robots,
+        isExcluded,
+        visited,
+        queued,
+      })
+    ) {
       continue;
     }
     sitemapQueue.push({ url: normalized, depth: null });
@@ -139,6 +154,7 @@ export async function runCrawlPhase(
       visited,
       origin,
       robots,
+      isExcluded,
     });
     await persistCrawlProgress({
       step,
@@ -256,6 +272,7 @@ function enqueueDiscoveredLinks(params: {
   visited: Set<string>;
   origin: string;
   robots: RobotsResult;
+  isExcluded: (url: string) => boolean;
 }) {
   const {
     crawledBatch,
@@ -265,6 +282,7 @@ function enqueueDiscoveredLinks(params: {
     visited,
     origin,
     robots,
+    isExcluded,
   } = params;
   const depthByUrl = new Map(
     batchEntries.map((entry) => [entry.url, entry.depth]),
@@ -275,7 +293,16 @@ function enqueueDiscoveredLinks(params: {
     const childDepth = pageDepth === null ? null : pageDepth + 1;
 
     for (const link of pageResult.internalLinks) {
-      if (!shouldQueueCrawlLink(link, origin, robots, visited, queued)) {
+      if (
+        !shouldQueueCrawlLink({
+          link,
+          origin,
+          robots,
+          isExcluded,
+          visited,
+          queued,
+        })
+      ) {
         continue;
       }
       linkQueue.push({ url: link, depth: childDepth });
@@ -286,7 +313,14 @@ function enqueueDiscoveredLinks(params: {
     const redirectTarget = pageResult.redirectUrl;
     if (
       redirectTarget &&
-      shouldQueueCrawlLink(redirectTarget, origin, robots, visited, queued)
+      shouldQueueCrawlLink({
+        link: redirectTarget,
+        origin,
+        robots,
+        isExcluded,
+        visited,
+        queued,
+      })
     ) {
       linkQueue.push({ url: redirectTarget, depth: pageDepth });
       queued.add(redirectTarget);

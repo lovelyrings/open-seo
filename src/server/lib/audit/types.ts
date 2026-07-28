@@ -5,12 +5,19 @@
 import { z } from "zod";
 import { MIN_AUDIT_PAGES, PAID_MAX_AUDIT_PAGES } from "@/shared/audit-limits";
 import { jsonCodec } from "@/shared/json";
+import { excludePatternsSchema } from "./exclude";
 
 export type LighthouseStrategy = "auto" | "none";
 
 export interface AuditConfig {
   maxPages: number;
   lighthouseStrategy: LighthouseStrategy;
+  /**
+   * Raw regex strings; a URL matching any is kept out of the audit (sitemap
+   * seeding + link following). Stored raw so the config replays deterministically;
+   * compiled at use via createUrlExcluder.
+   */
+  excludePatterns: string[];
 }
 
 // Read-side only (writes stringify a typed AuditConfig). Stored rows may hold
@@ -29,6 +36,9 @@ const lighthouseStrategySchema = z
 const auditConfigSchema = z.object({
   maxPages: z.number().int().min(MIN_AUDIT_PAGES).max(PAID_MAX_AUDIT_PAGES),
   lighthouseStrategy: lighthouseStrategySchema,
+  // Older audit rows predate this field; default [] so their configs stay
+  // parseable and their results viewable.
+  excludePatterns: excludePatternsSchema,
 });
 
 const auditConfigCodec = jsonCodec(auditConfigSchema);

@@ -1,6 +1,7 @@
 import type { WorkflowStep } from "cloudflare:workers";
 import type { BillingCustomerContext } from "@/server/billing/subscription";
 import { discoverUrls, parseRobotsTxt } from "@/server/lib/audit/discovery";
+import { createUrlExcluder } from "@/server/lib/audit/exclude";
 import {
   fetchAndStoreLighthouseResult,
   selectLighthouseSample,
@@ -59,14 +60,17 @@ export async function runAuditPhases(
   } = params;
   const origin = getOrigin(startUrl);
   const maxPages = config.maxPages;
+  // Compiled once from the stored raw patterns, so discovery and crawl share
+  // one matcher and every replay re-derives the exact same predicate.
+  const isExcluded = createUrlExcluder(config.excludePatterns);
 
-  const discovery = await runDiscoveryPhase(
-    step,
+  const discovery = await runDiscoveryPhase(step, {
     auditId,
     workflowInstanceId,
     origin,
     maxPages,
-  );
+    isExcluded,
+  });
   // Parsed outside the step from checkpointed text, so replays see the exact
   // robots rules the original run used (a live re-fetch could differ and
   // desync the frontier from already-persisted crawl batches).
@@ -78,6 +82,7 @@ export async function runAuditPhases(
     startUrl,
     maxPages,
     robots,
+    isExcluded,
     sitemapUrls: discovery.sitemapUrls,
   });
   await runLighthousePhase(step, {
@@ -103,13 +108,17 @@ export async function runAuditPhases(
 
 async function runDiscoveryPhase(
   step: WorkflowStep,
-  auditId: string,
-  workflowInstanceId: string,
-  origin: string,
-  maxPages: number,
+  params: {
+    auditId: string;
+    workflowInstanceId: string;
+    origin: string;
+    maxPages: number;
+    isExcluded: (url: string) => boolean;
+  },
 ) {
+  const { auditId, workflowInstanceId, origin, maxPages, isExcluded } = params;
   return pgStep(step, "discover-urls", undefined, async () => {
-    const result = await discoverUrls(origin, maxPages);
+    const result = await discoverUrls(origin, maxPages, isExcluded);
     await AuditRepository.updateAuditProgress(auditId, workflowInstanceId, {
       pagesTotal: Math.min(result.urls.length + 1, maxPages),
       currentPhase: "crawling",

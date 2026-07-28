@@ -184,6 +184,7 @@ async function fetchSitemapDocumentWithRetry(sitemapUrl: string): Promise<{
 export async function discoverUrls(
   origin: string,
   maxPages = 50,
+  isExcluded: (url: string) => boolean = () => false,
 ): Promise<{ urls: string[]; robotsText: string | null }> {
   const robotsText = await fetchRobotsTxtText(origin);
   const robots = parseRobotsTxt(origin, robotsText);
@@ -263,10 +264,14 @@ export async function discoverUrls(
     );
   }
 
-  // Cap at the crawl's page budget: these are seeds, the crawl can never use
-  // more — and an uncapped list can blow the ~1MiB Workflow step-state limit.
+  // Drop excluded URLs before the budget cap so the exclusions don't eat the
+  // page budget, then cap at the crawl's page budget: these are seeds, the
+  // crawl can never use more — and an uncapped list can blow the ~1MiB Workflow
+  // step-state limit.
   return {
-    urls: Array.from(allUrls).slice(0, maxPages),
+    urls: Array.from(allUrls)
+      .filter((url) => !isExcluded(url))
+      .slice(0, maxPages),
     robotsText,
   };
 }

@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { AuditRepository } from "@/server/features/audit/repositories/AuditRepository";
 import { AuditService } from "@/server/features/audit/services/AuditService";
+import {
+  excludePatternsSchema,
+  MAX_EXCLUDE_PATTERNS,
+  MAX_EXCLUDE_PATTERN_LENGTH,
+} from "@/server/lib/audit/exclude";
 import { AppError } from "@/server/lib/errors";
 import { captureServerEvent } from "@/server/lib/posthog";
 import {
@@ -59,6 +64,9 @@ const runInputSchema = {
     .describe(
       "Run Lighthouse on a sample of up to 10 representative pages (default true).",
     ),
+  excludePatterns: excludePatternsSchema.describe(
+    `Regex patterns; any crawled or sitemap URL matching one is excluded from the audit (both seeding and link-following), without touching robots.txt or the sitemap. Use to skip crawl traps (e.g. configurator variants) and artifacts (e.g. /cdn-cgi/). At most ${MAX_EXCLUDE_PATTERNS} patterns, each up to ${MAX_EXCLUDE_PATTERN_LENGTH} characters; each must be a valid regular expression.`,
+  ),
 } as const;
 
 type RunArgs = z.infer<z.ZodObject<typeof runInputSchema>>;
@@ -96,6 +104,7 @@ export const runSiteAuditTool = {
         startUrl: args.url,
         maxPages: args.maxPages,
         lighthouseStrategy,
+        excludePatterns: args.excludePatterns,
         limitTier,
       }));
     } catch (error) {
