@@ -83,6 +83,7 @@ export async function runAuditPhases(
     maxPages,
     robots,
     isExcluded,
+    renderMode: config.renderMode,
     sitemapUrls: discovery.sitemapUrls,
   });
   await runLighthousePhase(step, {

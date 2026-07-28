@@ -20,6 +20,7 @@ export const startAuditSchema = z.object({
     .default(DEFAULT_AUDIT_PAGES),
   lighthouseStrategy: z.enum(["auto", "none"]).optional().default("auto"),
   excludePatterns: excludePatternsSchema,
+  renderMode: z.boolean().optional().default(false),
 });
 
 export const getAuditStatusSchema = z.object({

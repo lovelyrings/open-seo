@@ -3,6 +3,7 @@ import type {
   PageFetchClass,
 } from "@/server/lib/audit/types";
 import { sha256Hex } from "@/server/lib/audit/ids";
+import { tryFetchRenderedHtml } from "@/server/lib/audit/render";
 import { normalizeUrl } from "@/server/lib/audit/url-utils";
 
 const CRAWL_USER_AGENT = "OpenSEO-Audit/1.0";
@@ -59,6 +60,7 @@ export async function crawlPage(
   url: string,
   crawlDepth: number | null,
   inSitemap: boolean,
+  renderMode = false,
 ): Promise<CrawledPageResult> {
   const startTime = Date.now();
 
@@ -107,7 +109,7 @@ export async function crawlPage(
     // Large pages make Cheerio disproportionately expensive and can exhaust a
     // crawl step's CPU or isolate memory. The first 2 MiB still contains the
     // SEO metadata and navigation needed by the audit in normal documents.
-    const body = isHtml ? await readTextUpTo(response, MAX_HTML_BYTES) : "";
+    let body = isHtml ? await readTextUpTo(response, MAX_HTML_BYTES) : "";
     const fetchClass = classifyFetch(
       statusCode,
       response.headers,
@@ -126,6 +128,20 @@ export async function crawlPage(
         crawlDepth,
         inSitemap,
       });
+    }
+
+    // Render mode: swap the static body for the sidecar's post-JavaScript DOM
+    // before analysis, so JS-built pages (e.g. a client-side configurator that
+    // injects its own <h1>) are analyzed as a browser sees them. HTTP-level
+    // signals above (status, redirects, x-robots-tag, Link canonical) stay from
+    // the direct fetch; only the analyzed body changes. A null result means the
+    // sidecar was unconfigured or failed — keep the static body (graceful
+    // degradation).
+    if (renderMode) {
+      const rendered = await tryFetchRenderedHtml(url);
+      if (rendered !== null) {
+        body = rendered;
+      }
     }
 
     // Dynamic import keeps cheerio (page-analyzer's HTML parser) out of the

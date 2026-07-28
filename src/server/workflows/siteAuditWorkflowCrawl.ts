@@ -51,6 +51,8 @@ type CrawlPhaseParams = {
   robots: RobotsResult;
   /** Keeps matching URLs out of the frontier; the start URL stays exempt. */
   isExcluded: (url: string) => boolean;
+  /** When true, each page is fetched via the rendering sidecar (post-JS DOM). */
+  renderMode: boolean;
   sitemapUrls: string[];
 };
 
@@ -75,6 +77,7 @@ export async function runCrawlPhase(
     maxPages,
     robots,
     isExcluded,
+    renderMode,
     sitemapUrls,
   } = params;
   const visited = new Set<string>();
@@ -137,6 +140,7 @@ export async function runCrawlPhase(
       auditId,
       batchEntries,
       sitemapSet,
+      renderMode,
       visited,
       queued,
     });
@@ -210,6 +214,7 @@ async function runCrawlBatch(
     auditId: string;
     batchEntries: QueueEntry[];
     sitemapSet: Set<string>;
+    renderMode: boolean;
     visited: Set<string>;
     queued: Set<string>;
   },
@@ -219,13 +224,19 @@ async function runCrawlBatch(
     auditId,
     batchEntries,
     sitemapSet,
+    renderMode,
     visited,
     queued,
   } = input;
   return pgStep(step, `crawl-batch-${crawlBatchIndex}`, undefined, async () => {
     const pages = await Promise.all(
       batchEntries.map((entry) =>
-        crawlPage(entry.url, entry.depth, sitemapSet.has(entry.url)),
+        crawlPage(
+          entry.url,
+          entry.depth,
+          sitemapSet.has(entry.url),
+          renderMode,
+        ),
       ),
     );
 

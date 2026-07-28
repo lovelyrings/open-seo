@@ -18,6 +18,13 @@ export interface AuditConfig {
    * compiled at use via createUrlExcluder.
    */
   excludePatterns: string[];
+  /**
+   * When true, each HTML page is fetched via the rendering sidecar (post-JS DOM)
+   * instead of the static markup, so JavaScript-built pages are analyzed as a
+   * browser sees them. Best-effort: falls back to the static body when the
+   * sidecar is unconfigured or fails.
+   */
+  renderMode: boolean;
 }
 
 // Read-side only (writes stringify a typed AuditConfig). Stored rows may hold
@@ -39,6 +46,9 @@ const auditConfigSchema = z.object({
   // Older audit rows predate this field; default [] so their configs stay
   // parseable and their results viewable.
   excludePatterns: excludePatternsSchema,
+  // Older audit rows predate this field; default false so their configs stay
+  // parseable and their results viewable.
+  renderMode: z.boolean().catch(false).default(false),
 });
 
 const auditConfigCodec = jsonCodec(auditConfigSchema);

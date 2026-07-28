@@ -67,6 +67,12 @@ const runInputSchema = {
   excludePatterns: excludePatternsSchema.describe(
     `Regex patterns; any crawled or sitemap URL matching one is excluded from the audit (both seeding and link-following), without touching robots.txt or the sitemap. Use to skip crawl traps (e.g. configurator variants) and artifacts (e.g. /cdn-cgi/). At most ${MAX_EXCLUDE_PATTERNS} patterns, each up to ${MAX_EXCLUDE_PATTERN_LENGTH} characters; each must be a valid regular expression.`,
   ),
+  renderMode: z
+    .boolean()
+    .optional()
+    .describe(
+      "Fetch each page's rendered (post-JavaScript) HTML via the rendering sidecar instead of static markup (default false). Slower and heavier, so use it selectively for JavaScript-built pages, and pair with excludePatterns to keep crawl-trap variants out. Falls back to static HTML when the sidecar is unavailable.",
+    ),
 } as const;
 
 type RunArgs = z.infer<z.ZodObject<typeof runInputSchema>>;
@@ -105,6 +111,7 @@ export const runSiteAuditTool = {
         maxPages: args.maxPages,
         lighthouseStrategy,
         excludePatterns: args.excludePatterns,
+        renderMode: args.renderMode,
         limitTier,
       }));
     } catch (error) {

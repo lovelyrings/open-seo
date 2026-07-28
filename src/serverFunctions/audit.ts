@@ -28,6 +28,7 @@ export const startAudit = createServerFn({ method: "POST" })
       maxPages: data.maxPages,
       lighthouseStrategy: data.lighthouseStrategy,
       excludePatterns: data.excludePatterns,
+      renderMode: data.renderMode,
       limitTier,
     });
 

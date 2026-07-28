@@ -40,6 +40,12 @@ declare namespace Cloudflare {
     // DataForSEO API Basic auth value (base64 of login:password)
     DATAFORSEO_API_KEY: string;
 
+    // Optional rendering sidecar for the site audit's render mode: a
+    // browserless-compatible endpoint that returns a page's post-JavaScript
+    // HTML. Must be publicly routable under the global_fetch_strictly_public
+    // compatibility flag (see src/server/lib/audit/render.ts).
+    RENDER_SERVICE_URL?: string;
+
     // OpenRouter API key for the in-app chat agents (onboarding + SAM).
     OPENROUTER_API_KEY?: string;
     // Optional OpenRouter model slug override (defaults in openrouter.ts).

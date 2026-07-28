@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseExcludePatterns } from "@/client/features/audit/launch/types";
+import {
+  DEFAULT_LAUNCH_FORM_VALUES,
+  parseExcludePatterns,
+} from "@/client/features/audit/launch/types";
 
 describe("parseExcludePatterns", () => {
   it("returns an empty list for an empty or whitespace-only field", () => {
@@ -20,5 +23,11 @@ describe("parseExcludePatterns", () => {
       "/b",
       "/c",
     ]);
+  });
+});
+
+describe("DEFAULT_LAUNCH_FORM_VALUES", () => {
+  it("keeps render mode opt-in (off by default)", () => {
+    expect(DEFAULT_LAUNCH_FORM_VALUES.renderJavaScript).toBe(false);
   });
 });

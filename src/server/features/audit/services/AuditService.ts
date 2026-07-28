@@ -46,6 +46,7 @@ async function startAudit(input: {
   maxPages?: number;
   lighthouseStrategy?: LighthouseStrategy;
   excludePatterns?: string[];
+  renderMode?: boolean;
   limitTier: AuditLimitTier;
 }) {
   const limits = AUDIT_LIMITS[input.limitTier];
@@ -65,6 +66,7 @@ async function startAudit(input: {
     maxPages,
     lighthouseStrategy,
     excludePatterns: input.excludePatterns ?? [],
+    renderMode: input.renderMode ?? false,
   };
   const startUrl = await normalizeAndValidateStartUrl(input.startUrl);
 

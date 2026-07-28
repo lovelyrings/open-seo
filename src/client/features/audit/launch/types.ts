@@ -15,6 +15,7 @@ export type LaunchFormValues = {
   url: string;
   maxPagesInput: string;
   runLighthouse: boolean;
+  renderJavaScript: boolean;
   excludePatternsInput: string;
 };
 
@@ -22,6 +23,7 @@ export const DEFAULT_LAUNCH_FORM_VALUES: LaunchFormValues = {
   url: "",
   maxPagesInput: String(DEFAULT_AUDIT_PAGES),
   runLighthouse: false,
+  renderJavaScript: false,
   excludePatternsInput: "",
 };
 

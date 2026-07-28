@@ -77,6 +77,7 @@ export function LaunchFormCard({
               maxPagesLimit={maxPagesLimit}
             />
             <LighthouseOptions launchForm={launchForm} />
+            <RenderModeOptions launchForm={launchForm} />
             <ExcludePatternsOptions launchForm={launchForm} />
           </div>
         </form>
@@ -175,6 +176,46 @@ function LighthouseOptions({ launchForm }: Pick<Props, "launchForm">) {
                 duplicate templates.
               </p>
             </div>
+          ) : null
+        }
+      </launchForm.Subscribe>
+    </div>
+  );
+}
+
+function RenderModeOptions({ launchForm }: Pick<Props, "launchForm">) {
+  return (
+    <div className="rounded-lg border border-base-300 bg-base-200/20 p-3 space-y-2">
+      <label className="label cursor-pointer justify-start gap-2 p-0">
+        <launchForm.Field name="renderJavaScript">
+          {(field) => (
+            <input
+              type="checkbox"
+              className="toggle toggle-sm toggle-primary"
+              checked={Boolean(field.state.value)}
+              onChange={(event) => field.handleChange(event.target.checked)}
+            />
+          )}
+        </launchForm.Field>
+        <span
+          className="text-sm font-medium text-base-content/80"
+          title="Fetch each page's rendered HTML (after JavaScript runs) via the rendering service, so JavaScript-built pages are analyzed as a browser sees them."
+        >
+          Render JavaScript
+        </span>
+      </label>
+
+      <launchForm.Subscribe
+        selector={(snapshot) => snapshot.values.renderJavaScript}
+      >
+        {(renderJavaScript) =>
+          renderJavaScript ? (
+            <p className="text-xs text-base-content/60">
+              Slower and heavier. Use it for JavaScript-built pages (e.g. a
+              client-side configurator), and pair it with exclude patterns to
+              keep crawl-trap variants out. Falls back to static HTML if the
+              rendering service is unavailable.
+            </p>
           ) : null
         }
       </launchForm.Subscribe>

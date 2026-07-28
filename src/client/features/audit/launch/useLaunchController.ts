@@ -113,6 +113,7 @@ export function useLaunchController({
           maxPages: effectiveMaxPages,
           lighthouseStrategy: value.runLighthouse ? "auto" : "none",
           excludePatterns: parseExcludePatterns(value.excludePatternsInput),
+          renderMode: value.renderJavaScript,
         });
         toast.success("Audit started!");
         onAuditStarted(result.auditId);
@@ -149,6 +150,7 @@ function useLaunchMutations({
       maxPages: number;
       lighthouseStrategy: "auto" | "none";
       excludePatterns: string[];
+      renderMode: boolean;
     }) => startAudit({ data }),
   });
 
