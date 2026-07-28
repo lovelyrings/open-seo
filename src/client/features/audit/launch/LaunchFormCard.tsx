@@ -77,6 +77,7 @@ export function LaunchFormCard({
               maxPagesLimit={maxPagesLimit}
             />
             <LighthouseOptions launchForm={launchForm} />
+            <ExcludePatternsOptions launchForm={launchForm} />
           </div>
         </form>
 
@@ -177,6 +178,47 @@ function LighthouseOptions({ launchForm }: Pick<Props, "launchForm">) {
           ) : null
         }
       </launchForm.Subscribe>
+    </div>
+  );
+}
+
+function ExcludePatternsOptions({ launchForm }: Pick<Props, "launchForm">) {
+  return (
+    <div className="rounded-lg border border-base-300 bg-base-200/20 p-3 space-y-2 md:col-span-2">
+      <label className="text-xs font-medium uppercase tracking-wide text-base-content/60">
+        Exclude URL patterns (optional)
+      </label>
+      <launchForm.Field name="excludePatternsInput">
+        {(field) => {
+          const excludeError = getFieldError(field.state.meta.errors);
+
+          return (
+            <>
+              <textarea
+                className={`textarea textarea-bordered textarea-sm w-full font-mono ${excludeError ? "textarea-error" : ""}`}
+                rows={3}
+                placeholder={"/configurator\n/cdn-cgi/"}
+                value={field.state.value}
+                onChange={(event) => {
+                  field.handleChange(event.target.value);
+                  if (launchForm.state.errorMap.onSubmit) {
+                    launchForm.setErrorMap({ onSubmit: undefined });
+                  }
+                }}
+              />
+              {excludeError ? (
+                <p className="text-xs text-error">{excludeError}</p>
+              ) : null}
+            </>
+          );
+        }}
+      </launchForm.Field>
+      <p className="text-xs text-base-content/50">
+        One regular expression per line; any crawled or sitemap URL matching a
+        pattern is skipped (e.g. <code>/configurator</code> or{" "}
+        <code>/cdn-cgi/</code>). Useful for skipping crawl traps. Up to 25
+        patterns.
+      </p>
     </div>
   );
 }

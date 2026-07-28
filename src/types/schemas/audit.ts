@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { excludePatternsSchema } from "@/server/lib/audit/exclude";
 import {
   DEFAULT_AUDIT_PAGES,
   MIN_AUDIT_PAGES,
@@ -18,6 +19,7 @@ export const startAuditSchema = z.object({
     .optional()
     .default(DEFAULT_AUDIT_PAGES),
   lighthouseStrategy: z.enum(["auto", "none"]).optional().default("auto"),
+  excludePatterns: excludePatternsSchema,
 });
 
 export const getAuditStatusSchema = z.object({

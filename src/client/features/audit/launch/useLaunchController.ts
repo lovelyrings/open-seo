@@ -10,6 +10,7 @@ import {
   DEFAULT_LAUNCH_FORM_VALUES,
   getMaxPagesLimit,
   MIN_PAGES,
+  parseExcludePatterns,
   type LaunchFormValues,
 } from "@/client/features/audit/launch/types";
 import {
@@ -17,24 +18,43 @@ import {
   shouldValidateFieldOnChange,
 } from "@/client/lib/forms";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
+import { excludePatternsSchema } from "@/server/lib/audit/exclude";
+
+// Validate the exclude patterns against the same schema the server enforces, so
+// the count/length/RegExp bounds have one definition. Returns the first issue's
+// message, or null when the field is valid (including empty).
+function getExcludePatternsError(input: string): string | null {
+  const result = excludePatternsSchema.safeParse(parseExcludePatterns(input));
+  if (result.success) {
+    return null;
+  }
+  return result.error.issues[0]?.message ?? "Invalid exclude patterns.";
+}
 
 function getLaunchValidationErrors(
   value: LaunchFormValues,
-  shouldValidateUntouchedField: boolean,
+  validate: { url: boolean; excludePatterns: boolean },
 ) {
-  if (value.url.trim()) {
+  const fields: Record<string, string> = {};
+
+  if (validate.url && !value.url.trim()) {
+    fields.url = "Please enter a URL.";
+  }
+
+  if (validate.excludePatterns) {
+    const excludePatternsError = getExcludePatternsError(
+      value.excludePatternsInput,
+    );
+    if (excludePatternsError) {
+      fields.excludePatternsInput = excludePatternsError;
+    }
+  }
+
+  if (Object.keys(fields).length === 0) {
     return null;
   }
 
-  if (!shouldValidateUntouchedField) {
-    return null;
-  }
-
-  return createFormValidationErrors({
-    fields: {
-      url: "Please enter a URL.",
-    },
-  });
+  return createFormValidationErrors({ fields });
 }
 
 export function useLaunchController({
@@ -60,11 +80,18 @@ export function useLaunchController({
     defaultValues: DEFAULT_LAUNCH_FORM_VALUES,
     validators: {
       onChange: ({ formApi, value }) =>
-        getLaunchValidationErrors(
-          value,
-          shouldValidateFieldOnChange(formApi, "url"),
-        ),
-      onSubmit: ({ value }) => getLaunchValidationErrors(value, true),
+        getLaunchValidationErrors(value, {
+          url: shouldValidateFieldOnChange(formApi, "url"),
+          excludePatterns: shouldValidateFieldOnChange(
+            formApi,
+            "excludePatternsInput",
+          ),
+        }),
+      onSubmit: ({ value }) =>
+        getLaunchValidationErrors(value, {
+          url: true,
+          excludePatterns: true,
+        }),
     },
     onSubmit: async ({ formApi, value }) => {
       const effectiveMaxPages = commitMaxPagesInput(launchForm, maxPagesLimit);
@@ -85,6 +112,7 @@ export function useLaunchController({
           startUrl: value.url,
           maxPages: effectiveMaxPages,
           lighthouseStrategy: value.runLighthouse ? "auto" : "none",
+          excludePatterns: parseExcludePatterns(value.excludePatternsInput),
         });
         toast.success("Audit started!");
         onAuditStarted(result.auditId);
@@ -120,6 +148,7 @@ function useLaunchMutations({
       startUrl: string;
       maxPages: number;
       lighthouseStrategy: "auto" | "none";
+      excludePatterns: string[];
     }) => startAudit({ data }),
   });
 
