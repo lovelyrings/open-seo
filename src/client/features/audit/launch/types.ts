@@ -24,6 +24,7 @@ export type LaunchFormValues = {
  * Mirrors the replayable fields of the server-side AuditConfig.
  */
 export type AuditLaunchSettings = {
+  startUrl: string;
   maxPages: number;
   lighthouseStrategy: "auto" | "none";
   excludePatterns: string[];
@@ -39,13 +40,14 @@ export type AuditLaunchSettings = {
 export function auditSettingsToFormValues(
   settings: AuditLaunchSettings,
   maxPagesLimit: number,
-): Omit<LaunchFormValues, "url"> {
+): LaunchFormValues {
   const clampedMaxPages = Math.max(
     MIN_PAGES,
     Math.min(maxPagesLimit, Math.round(settings.maxPages)),
   );
 
   return {
+    url: settings.startUrl,
     maxPagesInput: String(clampedMaxPages),
     runLighthouse: settings.lighthouseStrategy !== "none",
     renderJavaScript: settings.renderMode,

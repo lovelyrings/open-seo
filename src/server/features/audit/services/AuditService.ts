@@ -214,6 +214,7 @@ async function getHistory(projectId: string) {
       // Null for audits whose config predates the typed schema or is corrupt.
       settings: parsedConfig
         ? {
+            startUrl: audit.startUrl,
             maxPages: parsedConfig.maxPages,
             lighthouseStrategy: parsedConfig.lighthouseStrategy,
             excludePatterns: parsedConfig.excludePatterns,

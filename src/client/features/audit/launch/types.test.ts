@@ -38,6 +38,7 @@ describe("auditSettingsToFormValues", () => {
     expect(
       auditSettingsToFormValues(
         {
+          startUrl: "https://example.com",
           maxPages: 120,
           lighthouseStrategy: "auto",
           excludePatterns: ["/configurator", "^https://.*/cdn-cgi/"],
@@ -46,6 +47,7 @@ describe("auditSettingsToFormValues", () => {
         10_000,
       ),
     ).toEqual({
+      url: "https://example.com",
       maxPagesInput: "120",
       runLighthouse: true,
       renderJavaScript: true,
@@ -56,6 +58,7 @@ describe("auditSettingsToFormValues", () => {
   it("treats lighthouseStrategy 'none' as Lighthouse off", () => {
     const values = auditSettingsToFormValues(
       {
+        startUrl: "https://foo.test",
         maxPages: 50,
         lighthouseStrategy: "none",
         excludePatterns: [],
@@ -71,6 +74,7 @@ describe("auditSettingsToFormValues", () => {
     expect(
       auditSettingsToFormValues(
         {
+          startUrl: "https://foo.test",
           maxPages: 999_999,
           lighthouseStrategy: "none",
           excludePatterns: [],

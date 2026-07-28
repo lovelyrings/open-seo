@@ -131,6 +131,7 @@ export function useLaunchController({
 
   const loadSettings = (settings: AuditLaunchSettings) => {
     const values = auditSettingsToFormValues(settings, maxPagesLimit);
+    launchForm.setFieldValue("url", values.url);
     launchForm.setFieldValue("maxPagesInput", values.maxPagesInput);
     launchForm.setFieldValue("runLighthouse", values.runLighthouse);
     launchForm.setFieldValue("renderJavaScript", values.renderJavaScript);
